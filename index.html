@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Image</title>
+
+    <!-- Social Media Open Graph Meta Tags -->
+    <meta property="og:title" content="Exclusive Image Preview">
+    <meta property="og:description" content="Click to view full high-resolution image.">
+    <meta property="og:type" content="website">
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0d1117;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            background: #161b22;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 1px solid #30363d;
+            position: relative;
+        }
+
+        .image-wrapper {
+            position: relative;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #010409;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .main-image {
+            width: 100%;
+            height: auto;
+            max-height: 75vh;
+            object-fit: contain;
+            filter: blur(12px);
+            transition: filter 0.4s ease;
+            display: block;
+        }
+
+        .main-image.unblur {
+            filter: blur(0px) !important;
+        }
+
+        /* Neon Glowing Animated Arrow Button */
+        .neon-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.75);
+            color: #00ffcc;
+            padding: 16px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 50px;
+            border: 2px solid #00ffcc;
+            box-shadow: 0 0 15px #00ffcc, inset 0 0 15px #00ffcc;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            animation: pulseGlow 1.5s infinite alternate;
+            cursor: pointer;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+        }
+
+        @keyframes pulseGlow {
+            0% {
+                transform: translate(-50%, -50%) scale(0.96);
+                box-shadow: 0 0 10px #00ffcc, inset 0 0 5px #00ffcc;
+                border-color: #00ffcc;
+                color: #00ffcc;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.05);
+                box-shadow: 0 0 25px #00ffcc, 0 0 40px #00ffcc, inset 0 0 15px #00ffcc;
+                border-color: #ffffff;
+                color: #ffffff;
+            }
+        }
+
+        .arrows {
+            font-size: 20px;
+            animation: arrowBounce 1s infinite alternate;
+        }
+
+        @keyframes arrowBounce {
+            from { transform: translateX(-4px); }
+            to { transform: translateX(4px); }
+        }
+
+        .content-info {
+            margin-top: 15px;
+            text-align: left;
+        }
+
+        .content-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 6px;
+        }
+
+        .content-tags {
+            font-size: 14px;
+            color: #58a6ff;
+            word-wrap: break-word;
+        }
+
+        .loading-spinner {
+            border: 4px solid #30363d;
+            border-top: 4px solid #00ffcc;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-msg {
+            color: #f85149;
+            font-size: 16px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="app-container">
+    <div class="loading-spinner" id="loader"></div>
+    <div id="content-area" style="display: none;">
+        <div class="image-wrapper" id="image-wrapper">
+            <img id="post-img" class="main-image" src="" alt="Image">
+            <button class="neon-btn" id="action-btn">
+                <span class="arrows">➔</span> CLICK TO OPEN IMAGE <span class="arrows">⬅</span>
+            </button>
+        </div>
+        <div class="content-info">
+            <div class="content-title" id="post-title"></div>
+            <div class="content-tags" id="post-tags"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyBhhAwzd2PVj9mSiPGiMUzviky1z5d0L_s",
+        authDomain: "social-media-marketing-a3fe2.firebaseapp.com",
+        databaseURL: "https://social-media-marketing-a3fe2-default-rtdb.firebaseio.com",
+        projectId: "social-media-marketing-a3fe2",
+        storageBucket: "social-media-marketing-a3fe2.firebasestorage.app",
+        messagingSenderId: "150991715313",
+        appId: "1:150991715313:web:7f990a3d5b690c4a276250"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('id');
+
+    const loader = document.getElementById('loader');
+    const contentArea = document.getElementById('content-area');
+    const postImg = document.getElementById('post-img');
+    const postTitle = document.getElementById('post-title');
+    const postTags = document.getElementById('post-tags');
+    const actionBtn = document.getElementById('action-btn');
+    const imageWrapper = document.getElementById('image-wrapper');
+
+    let smartlinkUrl = "";
+
+    // Device Exclusion Check (Admin Device will not register views)
+    const isAdminDevice = localStorage.getItem('admin_device_active') === 'true';
+
+    if (!postId) {
+        loader.style.display = 'none';
+        document.getElementById('app-container').innerHTML = '<div class="error-msg">Invalid or Missing Link.</div>';
+    } else {
+        // Fetch Post
+        db.ref('posts/' + postId).once('value').then(snapshot => {
+            const data = snapshot.val();
+            loader.style.display = 'none';
+
+            if (data) {
+                contentArea.style.display = 'block';
+                postImg.src = data.imageUrl;
+                if (data.title) postTitle.innerText = data.title;
+                if (data.tags) postTags.innerText = data.tags;
+
+                // Log Total View (Excluding Admin Device)
+                if (!isAdminDevice) {
+                    db.ref('analytics/total_views').transaction(current => (current || 0) + 1);
+                    trackCountry();
+                }
+
+            } else {
+                document.getElementById('app-container').innerHTML = '<div class="error-msg">Image not found or deleted.</div>';
+            }
+        });
+    }
+
+    // Click Trigger for Ads & Image Unblur
+    function handleAdClick() {
+        // Unblur Image & Hide Neon Button
+        postImg.classList.add('unblur');
+        actionBtn.style.display = 'none';
+
+        // Log Click (Excluding Admin Device)
+        if (!isAdminDevice) {
+            db.ref('analytics/ad_clicks').transaction(current => (current || 0) + 1);
+        }
+
+        // Redirect to Smartlink Ad in new tab
+        if (smartlinkUrl) {
+            window.open(smartlinkUrl, '_blank');
+        } else {
+            // Placeholder if smartlink is not yet set
+            window.open('https://google.com', '_blank');
+        }
+    }
+
+    imageWrapper.addEventListener('click', handleAdClick);
+
+    // Track Country
+    function trackCountry() {
+        fetch('https://ipapi.co/json/')
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.country_name) {
+                    const countryKey = data.country_name.replace(/[.#$\[\]]/g, "_");
+                    db.ref('analytics/countries/' + countryKey).transaction(current => (current || 0) + 1);
+                }
+            }).catch(() => {});
+    }
+</script>
+
+</body>
+  </html>
