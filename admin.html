@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0d1117;
+            color: #c9d1d9;
+            padding: 15px;
+            min-height: 100vh;
+        }
+
+        .auth-box {
+            max-width: 400px;
+            margin: 80px auto;
+            background: #161b22;
+            padding: 30px;
+            border-radius: 12px;
+            border: 1px solid #30363d;
+            text-align: center;
+        }
+
+        .auth-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn:hover { background: #2ea043; }
+        .btn-danger { background: #da3633; }
+        .btn-danger:hover { background: #f85149; }
+        .btn-secondary { background: #30363d; }
+        .btn-secondary:hover { background: #8b949e; }
+
+        .dashboard {
+            max-width: 900px;
+            margin: 0 auto;
+            display: none;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background: #21262d;
+            color: #8b949e;
+            border: 1px solid #30363d;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .tab-btn.active {
+            background: #1f6feb;
+            color: #ffffff;
+            border-color: #1f6feb;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            color: #fff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: #161b22;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #30363d;
+            font-size: 14px;
+        }
+
+        th { background: #21262d; color: #f0f6fc; }
+
+        .thumb-img {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .stat-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+            text-align: center;
+        }
+
+        .card h3 { font-size: 28px; color: #58a6ff; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<!-- Login Box -->
+<div class="auth-box" id="login-box">
+    <h2>Admin Login</h2>
+    <input type="password" id="admin-pass" placeholder="Enter Password">
+    <button class="btn" onclick="login()">Access Panel</button>
+</div>
+
+<!-- Dashboard -->
+<div class="dashboard" id="dashboard">
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="switchTab('tab-create')">➕ New Post</button>
+        <button class="tab-btn" onclick="switchTab('tab-posts')">📁 Published Posts</button>
+        <button class="tab-btn" onclick="switchTab('tab-analytics')">📊 Viewers & Analytics</button>
+    </div>
+
+    <!-- Tab 1: Create Post -->
+    <div id="tab-create" class="tab-content active">
+        <div style="background: #161b22; padding: 20px; border-radius: 8px; border: 1px solid #30363d;">
+            <div class="form-group">
+                <label>Image URL (Required):</label>
+                <input type="text" id="img-url" placeholder="https://cdn.jsdelivr.net/...">
+            </div>
+            <div class="form-group">
+                <label>Title (Optional):</label>
+                <input type="text" id="img-title" placeholder="Enter title">
+            </div>
+            <div class="form-group">
+                <label>Hashtags (Optional):</label>
+                <input type="text" id="img-tags" placeholder="#anime #viral">
+            </div>
+            <button class="btn" onclick="publishPost()">Publish Post</button>
+            <div id="publish-success" style="margin-top: 15px; color: #3fb950; font-weight: bold;"></div>
+        </div>
+    </div>
+
+    <!-- Tab 2: Manage Posts -->
+    <div id="tab-posts" class="tab-content">
+        <table>
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Details</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="posts-table-body">
+                <!-- Posts populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Tab 3: Analytics -->
+    <div id="tab-analytics" class="tab-content">
+        <div class="stat-cards">
+            <div class="card">
+                <p>Total Page Views</p>
+                <h3 id="stat-views">0</h3>
+            </div>
+            <div class="card">
+                <p>Ad Clicks</p>
+                <h3 id="stat-clicks">0</h3>
+            </div>
+            <div class="card">
+                <p>Exited Without Click</p>
+                <h3 id="stat-bounced">0</h3>
+            </div>
+        </div>
+
+        <h3 style="margin-bottom: 10px;">Top Visitors Countries</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Country</th>
+                    <th>Visitors Count</th>
+                </tr>
+            </thead>
+            <tbody id="country-table-body">
+                <!-- Countries populated here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyBhhAwzd2PVj9mSiPGiMUzviky1z5d0L_s",
+        authDomain: "social-media-marketing-a3fe2.firebaseapp.com",
+        databaseURL: "https://social-media-marketing-a3fe2-default-rtdb.firebaseio.com",
+        projectId: "social-media-marketing-a3fe2",
+        storageBucket: "social-media-marketing-a3fe2.firebasestorage.app",
+        messagingSenderId: "150991715313",
+        appId: "1:150991715313:web:7f990a3d5b690c4a276250"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function login() {
+        const pass = document.getElementById('admin-pass').value;
+        if (pass === 'arafat01721313101') {
+            // Set Admin Device Flag so views from this Infinx phone are ignored
+            localStorage.setItem('admin_device_active', 'true');
+            
+            document.getElementById('login-box').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            loadPosts();
+            loadAnalytics();
+        } else {
+            alert('Incorrect Password!');
+        }
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    function publishPost() {
+        const url = document.getElementById('img-url').value.trim();
+        const title = document.getElementById('img-title').value.trim();
+        const tags = document.getElementById('img-tags').value.trim();
+
+        if (!url) {
+            alert('Please enter an Image URL!');
+            return;
+        }
+
+        const newPostRef = db.ref('posts').push();
+        newPostRef.set({
+            imageUrl: url,
+            title: title,
+            tags: tags,
+            timestamp: Date.now()
+        }).then(() => {
+            const baseUrl = window.location.href.replace('admin.html', '');
+            const shareUrl = `${baseUrl}?id=${newPostRef.key}`;
+            
+            document.getElementById('publish-success').innerHTML = `
+                Post Published!<br>
+                <input type="text" value="${shareUrl}" id="share-link-input" style="padding:6px; width:80%; margin-top:8px;" readonly>
+                <button class="btn" style="padding:6px 12px;" onclick="copyShareLink()">Copy Link</button>
+            `;
+            document.getElementById('img-url').value = '';
+            document.getElementById('img-title').value = '';
+            document.getElementById('img-tags').value = '';
+            loadPosts();
+        });
+    }
+
+    function copyShareLink() {
+        const input = document.getElementById('share-link-input');
+        input.select();
+        document.execCommand('copy');
+        alert('Link Copied to Clipboard!');
+    }
+
+    function loadPosts() {
+        db.ref('posts').on('value', snapshot => {
+            const tbody = document.getElementById('posts-table-body');
+            tbody.innerHTML = '';
+            const data = snapshot.val();
+
+            if (data) {
+                const baseUrl = window.location.href.replace('admin.html', '');
+                Object.keys(data).reverse().forEach(key => {
+                    const post = data[key];
+                    const shareUrl = `${baseUrl}?id=${key}`;
+                    
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><img src="${post.imageUrl}" class="thumb-img" alt="thumb"></td>
+                        <td>
+                            <strong>${post.title || 'No Title'}</strong><br>
+                            <small style="color:#8b949e;">${post.tags || ''}</small>
+                        </td>
+                        <td class="actions-cell">
+                            <button class="btn btn-secondary" onclick="copyDirect('${shareUrl}')">Copy Link</button>
+                            <button class="btn btn-secondary" onclick="window.open('${shareUrl}', '_blank')">View</button>
+                            <button class="btn btn-danger" onclick="deletePost('${key}')">Delete</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="3">No posts published yet.</td></tr>';
+            }
+        });
+    }
+
+    function copyDirect(link) {
+        navigator.clipboard.writeText(link);
+        alert('Share Link Copied!');
+    }
+
+    function deletePost(key) {
+        if (confirm('Are you sure you want to delete this post?')) {
+            db.ref('posts/' + key).remove();
+        }
+    }
+
+    function loadAnalytics() {
+        db.ref('analytics').on('value', snapshot => {
+            const data = snapshot.val() || {};
+            const totalViews = data.total_views || 0;
+            const adClicks = data.ad_clicks || 0;
+            const bounced = Math.max(0, totalViews - adClicks);
+
+            document.getElementById('stat-views').innerText = totalViews;
+            document.getElementById('stat-clicks').innerText = adClicks;
+            document.getElementById('stat-bounced').innerText = bounced;
+
+            const countryTable = document.getElementById('country-table-body');
+            countryTable.innerHTML = '';
+
+            if (data.countries) {
+                Object.keys(data.countries).forEach(c => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td>${c.replace(/_/g, " ")}</td><td>${data.countries[c]}</td>`;
+                    countryTable.appendChild(row);
+                });
+            } else {
+                countryTable.innerHTML = '<tr><td colspan="2">No country data recorded yet.</td></tr>';
+            }
+        });
+    }
+</script>
+
+</body>
+                      </html>
