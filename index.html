@@ -79,22 +79,22 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.85);
             color: #00ffcc;
             padding: 16px 24px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             border-radius: 50px;
             border: 2px solid #00ffcc;
             box-shadow: 0 0 15px #00ffcc, inset 0 0 15px #00ffcc;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1px;
             animation: pulseGlow 1.5s infinite alternate;
             cursor: pointer;
             z-index: 10;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             white-space: nowrap;
         }
 
@@ -114,7 +114,7 @@
         }
 
         .arrows {
-            font-size: 20px;
+            font-size: 18px;
             animation: arrowBounce 1s infinite alternate;
         }
 
@@ -148,6 +148,7 @@
             width: 40px;
             height: 40px;
             animation: spin 1s linear infinite;
+            margin: 20px auto;
         }
 
         @keyframes spin {
@@ -183,17 +184,19 @@
 <script>
     // Firebase Config
     const firebaseConfig = {
-        apiKey: "AIzaSyBhhAwzd2PVj9mSiPGiMUzviky1z5d0L_s",
-        authDomain: "social-media-marketing-a3fe2.firebaseapp.com",
-        databaseURL: "https://social-media-marketing-a3fe2-default-rtdb.firebaseio.com",
-        projectId: "social-media-marketing-a3fe2",
-        storageBucket: "social-media-marketing-a3fe2.firebasestorage.app",
-        messagingSenderId: "150991715313",
-        appId: "1:150991715313:web:7f990a3d5b690c4a276250"
+        apiKey: "AIzaSyCQAPJHBoS7PXdHvJrDGgp_Kq73hicPssI",
+        authDomain: "smart-image-hub.firebaseapp.com",
+        databaseURL: "https://smart-image-hub-default-rtdb.firebaseio.com",
+        projectId: "smart-image-hub",
+        storageBucket: "smart-image-hub.firebasestorage.app",
+        messagingSenderId: "314240395139",
+        appId: "1:314240395139:web:5053af0fef7d6b18cb38b6"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+    const smartlinkUrl = "https://www.profitableratecpmnetwork.com/cudtnzpt5?key=83b98a2a28553b6102318419c5e0eb6f";
 
     const urlParams = new URLSearchParams(window.location.search);
     const postId = urlParams.get('id');
@@ -206,16 +209,12 @@
     const actionBtn = document.getElementById('action-btn');
     const imageWrapper = document.getElementById('image-wrapper');
 
-    let smartlinkUrl = "";
-
-    // Device Exclusion Check (Admin Device will not register views)
     const isAdminDevice = localStorage.getItem('admin_device_active') === 'true';
 
     if (!postId) {
         loader.style.display = 'none';
         document.getElementById('app-container').innerHTML = '<div class="error-msg">Invalid or Missing Link.</div>';
     } else {
-        // Fetch Post
         db.ref('posts/' + postId).once('value').then(snapshot => {
             const data = snapshot.val();
             loader.style.display = 'none';
@@ -226,41 +225,31 @@
                 if (data.title) postTitle.innerText = data.title;
                 if (data.tags) postTags.innerText = data.tags;
 
-                // Log Total View (Excluding Admin Device)
                 if (!isAdminDevice) {
                     db.ref('analytics/total_views').transaction(current => (current || 0) + 1);
                     trackCountry();
                 }
-
             } else {
                 document.getElementById('app-container').innerHTML = '<div class="error-msg">Image not found or deleted.</div>';
             }
         });
     }
 
-    // Click Trigger for Ads & Image Unblur
     function handleAdClick() {
-        // Unblur Image & Hide Neon Button
         postImg.classList.add('unblur');
         actionBtn.style.display = 'none';
 
-        // Log Click (Excluding Admin Device)
         if (!isAdminDevice) {
             db.ref('analytics/ad_clicks').transaction(current => (current || 0) + 1);
         }
 
-        // Redirect to Smartlink Ad in new tab
         if (smartlinkUrl) {
             window.open(smartlinkUrl, '_blank');
-        } else {
-            // Placeholder if smartlink is not yet set
-            window.open('https://google.com', '_blank');
         }
     }
 
     imageWrapper.addEventListener('click', handleAdClick);
 
-    // Track Country
     function trackCountry() {
         fetch('https://ipapi.co/json/')
             .then(res => res.json())
@@ -274,4 +263,4 @@
 </script>
 
 </body>
-  </html>
+                </html>
